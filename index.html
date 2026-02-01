@@ -200,7 +200,9 @@
                             <span class="material-symbols-outlined" style="font-size: 20px;">crop</span>
                         </div>
                         <span
-                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary">Crop</span>
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary text-center">
+                            Crop <span class="text-slate-400 opacity-80">(C)</span>
+                        </span>
                     </button>
                     <button id="btn-resize" onclick="setTool('resize')"
                         class="group flex flex-col items-center gap-1 transition-all">
@@ -209,7 +211,9 @@
                             <span class="material-symbols-outlined" style="font-size: 20px;">aspect_ratio</span>
                         </div>
                         <span
-                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary">Resize</span>
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary text-center">
+                            Resize <span class="text-slate-400 opacity-80">(R)</span>
+                        </span>
                     </button>
                     <button id="btn-blur" onclick="setTool('blur')"
                         class="group flex flex-col items-center gap-1 transition-all">
@@ -218,15 +222,21 @@
                             <span class="material-symbols-outlined" style="font-size: 20px;">blur_on</span>
                         </div>
                         <span
-                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary">Blur</span>
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary text-center">
+                            Blur <span class="text-slate-400 opacity-80">(B)</span>
+                        </span>
                     </button>
                 </div>
-                <div class="mt-auto flex flex-col gap-4">
+                <div class="mt-auto flex flex-col gap-4 text-center">
                     <button onclick="undo()" class="group flex flex-col items-center">
                         <div
                             class="flex size-10 items-center justify-center rounded-lg text-slate-400 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined" style="font-size: 20px;">undo</span>
                         </div>
+                        <span
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-hover:text-primary">
+                            Undo <span class="text-slate-400 opacity-80">(^Z)</span>
+                        </span>
                     </button>
                 </div>
             </nav>
@@ -447,6 +457,25 @@
         }
 
         function handleKeyDown(e) {
+            // Prevent shortcuts if user is typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const key = e.key.toLowerCase();
+
+            // Undo: Ctrl+Z or Cmd+Z
+            if (key === 'z' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                undo();
+            }
+            // Tool shortcuts
+            else if (key === 'b') {
+                setTool('blur');
+            } else if (key === 'c') {
+                setTool('crop');
+            } else if (key === 'r') {
+                setTool('resize');
+            }
+
             if (e.key === 'Enter' && currentTool === 'crop' && !cropOverlay.classList.contains('hidden')) {
                 applyCrop();
             }
