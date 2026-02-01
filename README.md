@@ -1,4 +1,4 @@
-# QuickEdit
+# PainlessPaint
 
 A slick, speedy, and professional-grade image editor in a single file. Designed for quick crops, resizes, and secure data redaction.
 
