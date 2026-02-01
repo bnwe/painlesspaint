@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>QuickEdit | Slick & Speedy Image Editor</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0a0a0b",
+                        "editor-bg": "#050505",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                        "display": ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48;
+        }
+        .tool-active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .canvas-checkered {
+            background-color: #111111;
+            background-image: linear-gradient(45deg, #181818 25%, transparent 25%), 
+                              linear-gradient(-45deg, #181818 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #181818 75%), 
+                              linear-gradient(-45deg, transparent 75%, #181818 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        /* Custom styles for tools */
+        #crop-overlay {
+            cursor: move;
+        }
+        .resize-handle {
+            @apply absolute size-3 bg-white border-2 border-primary shadow-sm cursor-pointer;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased overflow-hidden">
+
+    <!-- Landing Page State -->
+    <div id="landing-page" class="flex-1 flex flex-col">
+        <header class="p-6 md:p-8 absolute top-0 left-0">
+            <div class="flex items-center gap-2 group cursor-default">
+                <div class="bg-primary/10 p-1.5 rounded-md">
+                    <svg class="size-4 text-primary" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"
+                            fill="currentColor"></path>
+                        <path clip-rule="evenodd"
+                            d="M39.998 35.764C39.9944 35.7463 39.9875 35.7155 39.9748 35.6706C39.9436 35.5601 39.8949 35.4259 39.8346 35.2825C39.8168 35.2403 39.7989 35.1993 39.7813 35.1602C38.5103 34.2887 35.9788 33.0607 33.7095 32.5189C30.9875 31.8691 27.6413 31.4783 24 31.4783C20.3587 31.4783 17.0125 31.8691 14.2905 32.5189C12.0012 33.0654 9.44505 34.3104 8.18538 35.1832C8.17384 35.2075 8.16216 35.233 8.15052 35.2592C8.09919 35.3751 8.05721 35.4886 8.02977 35.589C8.00356 35.6848 8.00039 35.7333 8.00004 35.7388C8.00004 35.739 8 35.7393 8.00004 35.7388C8.00004 35.7641 8.0104 36.0767 8.68485 36.6314C9.34546 37.1746 10.4222 37.7531 11.9291 38.2772C14.9242 39.319 19.1919 40 24 40C28.8081 40 33.0758 39.319 36.0709 38.2772C37.5778 37.7531 38.6545 37.1746 39.3151 36.6314C39.9006 36.1499 39.9857 35.8511 39.998 35.764ZM4.95178 32.7688L21.4543 6.30267C22.6288 4.4191 25.3712 4.41909 26.5457 6.30267L43.0534 32.777C43.0709 32.8052 43.0878 32.8338 43.104 32.8629L41.3563 33.8352C43.104 32.8629 43.1038 32.8626 43.104 32.8629L43.1051 32.865L43.1065 32.8675L43.1101 32.8739L43.1199 32.8918C43.1276 32.906 43.1377 32.9246 43.1497 32.9473C43.1738 32.9925 43.2062 33.0545 43.244 33.1299C43.319 33.2792 43.4196 33.489 43.5217 33.7317C43.6901 34.1321 44 34.9311 44 35.7391C44 37.4427 43.003 38.7775 41.8558 39.7209C40.6947 40.6757 39.1354 41.4464 37.385 42.0552C33.8654 43.2794 29.133 44 24 44C18.867 44 14.1346 43.2794 10.615 42.0552C8.86463 41.4464 7.30529 40.6757 6.14419 39.7209C4.99695 38.7775 3.99999 37.4427 3.99999 35.7391C3.99999 34.8725 4.29264 34.0922 4.49321 33.6393C4.60375 33.3898 4.71348 33.1804 4.79687 33.0311C4.83898 32.9556 4.87547 32.8935 4.9035 32.8471C4.91754 32.8238 4.92954 32.8043 4.93916 32.7889L4.94662 32.777L4.95178 32.7688ZM35.9868 29.004L24 9.77997L12.0131 29.004C12.4661 28.8609 12.9179 28.7342 13.3617 28.6282C16.4281 27.8961 20.0901 27.4783 24 27.4783C27.9099 27.4783 31.5719 27.8961 34.6383 28.6282C35.082 28.7342 35.5339 28.8609 35.9868 29.004Z"
+                            fill="currentColor" fill-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <span class="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-200">QuickEdit</span>
+            </div>
+        </header>
+        <main class="flex-1 flex items-center justify-center p-6">
+            <div class="w-full max-w-2xl">
+                <label id="drop-zone" class="relative block w-full aspect-[4/3] md:aspect-[16/9] group"
+                    for="image-upload">
+                    <input accept="image/*" class="hidden" id="image-upload" type="file" />
+                    <div
+                        class="absolute inset-0 border-2 border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 rounded-2xl transition-all duration-300 group-hover:border-primary group-hover:bg-primary/[0.02] flex flex-col items-center justify-center cursor-pointer">
+                        <div class="flex flex-col items-center gap-6 text-center px-8">
+                            <div
+                                class="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-all duration-300">
+                                <span class="material-symbols-outlined !text-4xl">add_photo_alternate</span>
+                            </div>
+                            <div class="space-y-2">
+                                <h2 class="text-xl font-bold tracking-tight dark:text-white">Drag and drop an image</h2>
+                                <p
+                                    class="text-slate-500 dark:text-slate-400 text-sm max-w-[280px] mx-auto leading-relaxed">
+                                    Upload to start cropping, resizing, or blurring sensitive data.
+                                </p>
+                            </div>
+                            <div
+                                class="mt-2 py-3 px-8 bg-primary text-white text-sm font-semibold rounded-lg shadow-xl shadow-primary/20 transition-transform active:scale-95 group-hover:scale-105">
+                                Select File
+                            </div>
+                        </div>
+                        <div class="absolute bottom-8 left-0 right-0 text-center">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600">
+                                JPG • PNG • WEBP • MAX 25MB</p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </main>
+        <div class="fixed bottom-8 left-1/2 -translate-x-1/2 pointer-events-none opacity-40">
+            <span class="text-[10px] font-medium tracking-widest text-slate-400 dark:text-slate-500 uppercase">Ready to
+                edit</span>
+        </div>
+    </div>
+
+    <!-- Editor Workspace State -->
+    <div id="editor-workspace" class="hidden flex-1 flex flex-col overflow-hidden">
+        <header
+            class="flex h-14 items-center justify-between border-b border-slate-200 dark:border-white/10 bg-white dark:bg-background-dark px-4 z-30">
+            <div class="flex items-center gap-4">
+                <div class="size-7 text-primary cursor-pointer" onclick="resetToLanding()">
+                    <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z"
+                            fill="currentColor"></path>
+                    </svg>
+                </div>
+                <!-- Resize Controls -->
+                <div id="resize-controls"
+                    class="flex items-center gap-4 bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-200 dark:border-white/10">
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-500">W</span>
+                            <input id="resize-w"
+                                class="w-16 h-7 bg-white dark:bg-black border border-slate-300 dark:border-white/20 rounded text-xs px-1.5 focus:ring-1 focus:ring-primary focus:border-transparent outline-none"
+                                type="number" value="0" />
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-500">H</span>
+                            <input id="resize-h"
+                                class="w-16 h-7 bg-white dark:bg-black border border-slate-300 dark:border-white/20 rounded text-xs px-1.5 focus:ring-1 focus:ring-primary focus:border-transparent outline-none"
+                                type="number" value="0" />
+                        </label>
+                    </div>
+                    <div class="h-4 w-px bg-slate-300 dark:bg-white/10"></div>
+                    <div class="flex h-7 items-center rounded-md bg-slate-200 dark:bg-white/10 p-0.5">
+                        <button id="unit-px"
+                            class="px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white"
+                            onclick="setResizeUnit('px')">PX</button>
+                        <button id="unit-pct" class="px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                            onclick="setResizeUnit('%')">%</button>
+                    </div>
+                </div>
+                <!-- Blur Controls -->
+                <div id="blur-controls"
+                    class="hidden flex items-center gap-4 bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-200 dark:border-white/10">
+                    <label class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-500">INTENSITY</span>
+                        <input id="blur-intensity" type="range" min="1" max="5" value="3" step="1"
+                            class="w-24 h-2 bg-slate-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary" />
+                        <span id="blur-intensity-label" class="text-[10px] font-bold text-primary w-12">High</span>
+                    </label>
+                </div>
+                <!-- Tool Help Text -->
+                <div id="tool-help" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-4 hidden">
+                    Drag to crop
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="apply-crop-btn" onclick="applyCrop()"
+                    class="hidden flex h-9 items-center justify-center rounded-lg bg-green-600 px-5 text-xs font-bold text-white shadow-lg shadow-green-600/20 hover:bg-green-700 transition-all">
+                    Apply Crop
+                </button>
+                <button onclick="resetEdits()"
+                    class="flex h-9 items-center gap-2 px-4 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
+                    <span class="material-symbols-outlined text-lg">restart_alt</span>
+                    Reset
+                </button>
+                <button id="download-btn" onclick="downloadImage()"
+                    class="flex h-9 items-center justify-center rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+                    Download
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <nav
+                class="flex w-16 flex-col items-center border-r border-slate-200 dark:border-white/10 bg-white dark:bg-background-dark py-4 z-20">
+                <div class="flex flex-col gap-4">
+                    <button id="btn-crop" onclick="setTool('crop')"
+                        class="group flex flex-col items-center gap-1 transition-all">
+                        <div
+                            class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">crop</span>
+                        </div>
+                        <span
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary">Crop</span>
+                    </button>
+                    <button id="btn-resize" onclick="setTool('resize')"
+                        class="group flex flex-col items-center gap-1 transition-all">
+                        <div
+                            class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">aspect_ratio</span>
+                        </div>
+                        <span
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary">Resize</span>
+                    </button>
+                    <button id="btn-blur" onclick="setTool('blur')"
+                        class="group flex flex-col items-center gap-1 transition-all">
+                        <div
+                            class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">blur_on</span>
+                        </div>
+                        <span
+                            class="text-[9px] font-bold uppercase tracking-widest text-slate-500 group-[.tool-active]:text-primary">Blur</span>
+                    </button>
+                </div>
+                <div class="mt-auto flex flex-col gap-4">
+                    <button onclick="undo()" class="group flex flex-col items-center">
+                        <div
+                            class="flex size-10 items-center justify-center rounded-lg text-slate-400 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">undo</span>
+                        </div>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Main Workspace -->
+            <main
+                class="relative flex-1 bg-slate-100 dark:bg-editor-bg overflow-hidden flex items-center justify-center p-8">
+                <div id="canvas-container"
+                    class="relative canvas-checkered shadow-2xl overflow-hidden border border-slate-300 dark:border-white/5">
+                    <canvas id="main-canvas" class="block max-w-full max-h-full object-contain"></canvas>
+
+                    <!-- Overlays -->
+                    <div id="crop-overlay"
+                        class="absolute inset-0 pointer-events-none hidden border-2 border-primary/60">
+                        <div class="resize-handle -top-1.5 -left-1.5" data-handle="nw"></div>
+                        <div class="resize-handle -top-1.5 -right-1.5" data-handle="ne"></div>
+                        <div class="resize-handle -bottom-1.5 -left-1.5" data-handle="sw"></div>
+                        <div class="resize-handle -bottom-1.5 -right-1.5" data-handle="se"></div>
+                        <div class="resize-handle top-1/2 -left-1.5 -translate-y-1/2" data-handle="w"></div>
+                        <div class="resize-handle top-1/2 -right-1.5 -translate-y-1/2" data-handle="e"></div>
+                        <div class="resize-handle -top-1.5 left-1/2 -translate-x-1/2" data-handle="n"></div>
+                        <div class="resize-handle -bottom-1.5 left-1/2 -translate-x-1/2" data-handle="s"></div>
+                    </div>
+
+                    <div id="blur-overlay"
+                        class="absolute inset-0 pointer-events-none hidden border-2 border-red-500/60">
+                    </div>
+                </div>
+
+                <!-- Info Badge -->
+                <div id="info-badge"
+                    class="absolute bottom-4 right-4 flex items-center gap-3 px-3 py-1.5 rounded bg-black/40 backdrop-blur-sm border border-white/10 text-[10px] font-semibold tracking-wider text-slate-300 uppercase">
+                    <span id="info-dims">0 × 0</span>
+                    <span class="text-white/20">|</span>
+                    <span id="info-filetype">PNG</span>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Hidden processing canvas -->
+    <canvas id="proc-canvas" class="hidden"></canvas>
+
+    <script>
+        // State Management
+        let originalImage = null;
+        let currentImage = null; // Image data URL
+        let imageHistory = [];
+        let currentTool = 'resize';
+        let resizeUnit = 'px';
+        let blurIntensity = 3; // 1=Low, 2=Medium, 3=High, 4=Very High, 5=Maximum
+
+        // Interaction state
+        let isDrawing = false;
+        let isResizing = false;
+        let activeHandle = null;
+        let startX, startY;
+        let cropRect = { x: 0, y: 0, w: 0, h: 0 };
+        let blurRect = { x: 0, y: 0, w: 0, h: 0 };
+
+        const landingPage = document.getElementById('landing-page');
+        const editorWorkspace = document.getElementById('editor-workspace');
+        const imageUpload = document.getElementById('image-upload');
+        const dropZone = document.getElementById('drop-zone');
+        const mainCanvas = document.getElementById('main-canvas');
+        const procCanvas = document.getElementById('proc-canvas');
+        const infoDims = document.getElementById('info-dims');
+        const infoFileType = document.getElementById('info-filetype');
+        const resizeW = document.getElementById('resize-w');
+        const resizeH = document.getElementById('resize-h');
+        const cropOverlay = document.getElementById('crop-overlay');
+        const blurOverlay = document.getElementById('blur-overlay');
+        const canvasContainer = document.getElementById('canvas-container');
+        const applyCropBtn = document.getElementById('apply-crop-btn');
+        const blurIntensitySlider = document.getElementById('blur-intensity');
+        const blurIntensityLabel = document.getElementById('blur-intensity-label');
+
+        // --- Initialization ---
+
+        function init() {
+            setupEventHandlers();
+            setTool('resize');
+        }
+
+        function setupEventHandlers() {
+            imageUpload.addEventListener('change', handleFileSelect);
+
+            // Drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-primary');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-primary');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-primary');
+                if (e.dataTransfer.files.length) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+
+            // Resize inputs
+            resizeW.addEventListener('input', () => handleResizeInput('w'));
+            resizeH.addEventListener('input', () => handleResizeInput('h'));
+
+            // Blur intensity slider
+            blurIntensitySlider.addEventListener('input', (e) => {
+                blurIntensity = parseInt(e.target.value);
+                const labels = ['', 'Low', 'Medium', 'High', 'Very High', 'Maximum'];
+                blurIntensityLabel.textContent = labels[blurIntensity];
+            });
+
+            // Canvas interactions
+            canvasContainer.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        // --- Interaction Handling ---
+
+        function getMousePos(e) {
+            const rect = canvasContainer.getBoundingClientRect();
+            const scaleX = mainCanvas.width / rect.width;
+            const scaleY = mainCanvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleMouseDown(e) {
+            if (currentTool === 'resize') return;
+
+            const pos = getMousePos(e);
+
+            // Check for handle click
+            if (currentTool === 'crop' && !cropOverlay.classList.contains('hidden')) {
+                const handle = e.target.closest('[data-handle]');
+                if (handle) {
+                    isResizing = true;
+                    activeHandle = handle.dataset.handle;
+                    startX = pos.x;
+                    startY = pos.y;
+                    e.stopPropagation();
+                    return;
+                }
+            }
+
+            isDrawing = true;
+            startX = pos.x;
+            startY = pos.y;
+
+            if (currentTool === 'crop') {
+                cropRect = { x: startX, y: startY, w: 0, h: 0 };
+                updateCropOverlay();
+            } else if (currentTool === 'blur') {
+                blurRect = { x: startX, y: startY, w: 0, h: 0 };
+                updateBlurOverlay();
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!isDrawing && !isResizing) return;
+
+            const pos = getMousePos(e);
+            const currentX = pos.x;
+            const currentY = pos.y;
+
+            if (isResizing) {
+                const dx = currentX - startX;
+                const dy = currentY - startY;
+
+                if (activeHandle.includes('e')) cropRect.w += dx;
+                if (activeHandle.includes('w')) { cropRect.x += dx; cropRect.w -= dx; }
+                if (activeHandle.includes('s')) cropRect.h += dy;
+                if (activeHandle.includes('n')) { cropRect.y += dy; cropRect.h -= dy; }
+
+                startX = currentX;
+                startY = currentY;
+                updateCropOverlay();
+                return;
+            }
+
+            if (currentTool === 'crop') {
+                cropRect.w = currentX - startX;
+                cropRect.h = currentY - startY;
+                updateCropOverlay();
+            } else if (currentTool === 'blur') {
+                blurRect.w = currentX - startX;
+                blurRect.h = currentY - startY;
+                updateBlurOverlay();
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (isResizing) {
+                isResizing = false;
+                activeHandle = null;
+                return;
+            }
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            if (currentTool === 'blur') {
+                const pos = getMousePos(e);
+                applyBlur(blurRect.x, blurRect.y, blurRect.w, blurRect.h, true);
+                blurOverlay.classList.add('hidden');
+            }
+
+            if (currentTool === 'crop' && Math.abs(cropRect.w) > 5 && Math.abs(cropRect.h) > 5) {
+                applyCropBtn.classList.remove('hidden');
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && currentTool === 'crop' && !cropOverlay.classList.contains('hidden')) {
+                applyCrop();
+            }
+        }
+
+        // --- Crop Logic ---
+
+        function updateCropOverlay() {
+            const canvasRect = canvasContainer.getBoundingClientRect();
+            const scaleX = canvasRect.width / mainCanvas.width;
+            const scaleY = canvasRect.height / mainCanvas.height;
+
+            const left = Math.min(cropRect.x, cropRect.x + cropRect.w) * scaleX;
+            const top = Math.min(cropRect.y, cropRect.y + cropRect.h) * scaleY;
+            const width = Math.abs(cropRect.w) * scaleX;
+            const height = Math.abs(cropRect.h) * scaleY;
+
+            cropOverlay.style.left = `${left}px`;
+            cropOverlay.style.top = `${top}px`;
+            cropOverlay.style.width = `${width}px`;
+            cropOverlay.style.height = `${height}px`;
+            cropOverlay.classList.remove('hidden');
+            cropOverlay.style.pointerEvents = 'auto'; // Allow handle dragging
+        }
+
+        function applyCrop() {
+            const x = Math.min(cropRect.x, cropRect.x + cropRect.w);
+            const y = Math.min(cropRect.y, cropRect.y + cropRect.h);
+            const w = Math.abs(cropRect.w);
+            const h = Math.abs(cropRect.h);
+
+            if (w < 5 || h < 5) return;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(mainCanvas, x, y, w, h, 0, 0, w, h);
+
+            mainCanvas.width = w;
+            mainCanvas.height = h;
+            mainCanvas.getContext('2d').drawImage(tempCanvas, 0, 0);
+
+            cropOverlay.classList.add('hidden');
+            applyCropBtn.classList.add('hidden');
+            updateInfo(w, h);
+            updateResizeInputs(w, h);
+            saveState();
+        }
+
+        function updateBlurOverlay() {
+            const canvasRect = canvasContainer.getBoundingClientRect();
+            const scaleX = canvasRect.width / mainCanvas.width;
+            const scaleY = canvasRect.height / mainCanvas.height;
+
+            const left = Math.min(blurRect.x, blurRect.x + blurRect.w) * scaleX;
+            const top = Math.min(blurRect.y, blurRect.y + blurRect.h) * scaleY;
+            const width = Math.abs(blurRect.w) * scaleX;
+            const height = Math.abs(blurRect.h) * scaleY;
+
+            blurOverlay.style.left = `${left}px`;
+            blurOverlay.style.top = `${top}px`;
+            blurOverlay.style.width = `${width}px`;
+            blurOverlay.style.height = `${height}px`;
+            blurOverlay.classList.remove('hidden');
+        }
+
+        // --- Blur Logic ---
+
+        // Improved box blur with proper buffering to avoid artifacts
+        function boxBlurImageData(imageData, width, height, radius) {
+            const pixels = imageData.data;
+            const output = new Uint8ClampedArray(pixels.length);
+
+            // Horizontal pass - write to output buffer
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let r = 0, g = 0, b = 0, a = 0;
+                    const kernelSize = radius * 2 + 1;
+
+                    for (let kx = -radius; kx <= radius; kx++) {
+                        const px = Math.min(width - 1, Math.max(0, x + kx));
+                        const offset = (y * width + px) * 4;
+                        r += pixels[offset];
+                        g += pixels[offset + 1];
+                        b += pixels[offset + 2];
+                        a += pixels[offset + 3];
+                    }
+
+                    const offset = (y * width + x) * 4;
+                    output[offset] = r / kernelSize;
+                    output[offset + 1] = g / kernelSize;
+                    output[offset + 2] = b / kernelSize;
+                    output[offset + 3] = a / kernelSize;
+                }
+            }
+
+            // Vertical pass - read from output, write to pixels
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let r = 0, g = 0, b = 0, a = 0;
+                    const kernelSize = radius * 2 + 1;
+
+                    for (let ky = -radius; ky <= radius; ky++) {
+                        const py = Math.min(height - 1, Math.max(0, y + ky));
+                        const offset = (py * width + x) * 4;
+                        r += output[offset];
+                        g += output[offset + 1];
+                        b += output[offset + 2];
+                        a += output[offset + 3];
+                    }
+
+                    const offset = (y * width + x) * 4;
+                    pixels[offset] = r / kernelSize;
+                    pixels[offset + 1] = g / kernelSize;
+                    pixels[offset + 2] = b / kernelSize;
+                    pixels[offset + 3] = a / kernelSize;
+                }
+            }
+
+            return imageData;
+        }
+
+        function applyBlur(x, y, w, h, save) {
+            const bx = Math.min(x, x + w);
+            const by = Math.min(y, y + h);
+            const bw = Math.abs(w);
+            const bh = Math.abs(h);
+
+            if (bw < 2 || bh < 2) return;
+            if (!save) return;
+
+            const ctx = mainCanvas.getContext('2d');
+
+            // Intensity settings: CSS blur only for artifact-free results
+            const intensitySettings = {
+                1: { replace: false, blurRadius: 8, passes: 1 },       // Low
+                2: { replace: false, blurRadius: 15, passes: 2 },      // Medium
+                3: { replace: true, blurRadius: 20, passes: 2 },       // High
+                4: { replace: true, blurRadius: 30, passes: 3 },       // Very High
+                5: { replace: true, blurRadius: 40, passes: 4 }        // Maximum
+            };
+
+            const settings = intensitySettings[blurIntensity];
+
+            // Step 1: Pixel replacement for high intensities (destroys original data)
+            if (settings.replace) {
+                const imageData = ctx.getImageData(bx, by, bw, bh);
+                const pixels = imageData.data;
+
+                // Calculate average color for the region
+                let avgR = 0, avgG = 0, avgB = 0;
+                for (let i = 0; i < pixels.length; i += 4) {
+                    avgR += pixels[i];
+                    avgG += pixels[i + 1];
+                    avgB += pixels[i + 2];
+                }
+                const pixelCount = pixels.length / 4;
+                avgR = Math.floor(avgR / pixelCount);
+                avgG = Math.floor(avgG / pixelCount);
+                avgB = Math.floor(avgB / pixelCount);
+
+                // Replace all pixels with average color + random noise
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const noise = (Math.random() - 0.5) * 40; // Random noise ±20
+                    pixels[i] = Math.max(0, Math.min(255, avgR + noise));
+                    pixels[i + 1] = Math.max(0, Math.min(255, avgG + noise));
+                    pixels[i + 2] = Math.max(0, Math.min(255, avgB + noise));
+                    // Keep alpha unchanged
+                }
+
+                ctx.putImageData(imageData, bx, by);
+            }
+
+            // Step 2: Apply constrained blur with minimal edge bleeding
+            // Create a working area slightly larger than the selection to allow blur calculation
+            const padding = Math.ceil(settings.blurRadius * 0.5); // Minimal padding
+            const workX = Math.max(0, bx - padding);
+            const workY = Math.max(0, by - padding);
+            const workW = Math.min(mainCanvas.width - workX, bw + padding * 2);
+            const workH = Math.min(mainCanvas.height - workY, bh + padding * 2);
+
+            for (let pass = 0; pass < settings.passes; pass++) {
+                // Extract working area (slightly larger than selection)
+                const workCanvas = document.createElement('canvas');
+                workCanvas.width = workW;
+                workCanvas.height = workH;
+                const workCtx = workCanvas.getContext('2d');
+                workCtx.drawImage(mainCanvas, workX, workY, workW, workH, 0, 0, workW, workH);
+
+                // Apply blur to working area
+                const blurCanvas = document.createElement('canvas');
+                blurCanvas.width = workW;
+                blurCanvas.height = workH;
+                const blurCtx = blurCanvas.getContext('2d');
+                blurCtx.filter = `blur(${settings.blurRadius}px)`;
+                blurCtx.drawImage(workCanvas, 0, 0);
+
+                // Clip and draw only the selected rectangle back (not the padded area)
+                const offsetX = bx - workX;
+                const offsetY = by - workY;
+                ctx.drawImage(blurCanvas, offsetX, offsetY, bw, bh, bx, by, bw, bh);
+            }
+
+            if (save) saveState();
+        }
+
+        // --- File Handling ---
+
+        function handleFileSelect(e) {
+            handleFiles(e.target.files);
+        }
+
+        function handleFiles(files) {
+            const file = files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalImage = img;
+                    loadImage(img, file.type.split('/')[1].toUpperCase());
+                    landingPage.classList.add('hidden');
+                    editorWorkspace.classList.remove('hidden');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function loadImage(img, type) {
+            mainCanvas.width = img.width;
+            mainCanvas.height = img.height;
+            const ctx = mainCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            currentImage = mainCanvas.toDataURL();
+            imageHistory = [currentImage];
+
+            updateInfo(img.width, img.height, type);
+            updateResizeInputs(img.width, img.height);
+        }
+
+        function updateInfo(w, h, type) {
+            infoDims.textContent = `${Math.round(w)} × ${Math.round(h)}`;
+            if (type) infoFileType.textContent = type;
+        }
+
+        function updateResizeInputs(w, h) {
+            if (resizeUnit === 'px') {
+                resizeW.value = Math.round(w);
+                resizeH.value = Math.round(h);
+            } else {
+                resizeW.value = 100;
+                resizeH.value = 100;
+            }
+        }
+
+        // --- Tools & UI ---
+
+        function setTool(tool) {
+            currentTool = tool;
+
+            // Update UI Sidebar
+            ['crop', 'resize', 'blur'].forEach(t => {
+                const btn = document.getElementById(`btn-${t}`);
+                if (t === tool) {
+                    btn.classList.add('tool-active');
+                    const iconDiv = btn.querySelector('div');
+                    iconDiv.className = 'flex size-10 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/30';
+                    btn.querySelector('span').classList.add('text-primary');
+                } else {
+                    btn.classList.remove('tool-active');
+                    const iconDiv = btn.querySelector('div');
+                    iconDiv.className = 'flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all';
+                    btn.querySelector('span').classList.remove('text-primary');
+                }
+            });
+
+            // Toggle tool specific controls/overlays
+            document.getElementById('resize-controls').classList.toggle('hidden', tool !== 'resize');
+            document.getElementById('blur-controls').classList.toggle('hidden', tool !== 'blur');
+            cropOverlay.classList.add('hidden');
+            blurOverlay.classList.add('hidden');
+            applyCropBtn.classList.add('hidden');
+            document.getElementById('tool-help').classList.toggle('hidden', tool === 'resize');
+
+            canvasContainer.style.cursor = tool === 'resize' ? 'default' : 'crosshair';
+
+            const helpText = {
+                'crop': 'Drag to select area, use handles to resize, press Enter to apply',
+                'blur': 'Click and drag to blur sensitive data'
+            };
+            document.getElementById('tool-help').textContent = helpText[tool] || '';
+        }
+
+        function setResizeUnit(unit) {
+            resizeUnit = unit;
+            document.getElementById('unit-px').className = unit === 'px' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+            document.getElementById('unit-pct').className = unit === '%' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+
+            updateResizeInputs(mainCanvas.width, mainCanvas.height);
+        }
+
+        function handleResizeInput(axis) {
+            const w = parseInt(resizeW.value) || 0;
+            const h = parseInt(resizeH.value) || 0;
+
+            if (w <= 0 || h <= 0) return;
+
+            let targetW, targetH;
+            const baseImg = new Image();
+            baseImg.onload = () => {
+                if (resizeUnit === 'px') {
+                    targetW = w;
+                    targetH = h;
+                } else {
+                    targetW = Math.round(originalImage.width * (w / 100));
+                    targetH = Math.round(originalImage.height * (h / 100));
+                }
+                applyResize(targetW, targetH);
+            };
+            baseImg.src = imageHistory[0]; // Always resize from original "as loaded" or last saved? User said real-time.
+        }
+
+        function applyResize(w, h) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(originalImage, 0, 0, w, h);
+
+            mainCanvas.width = w;
+            mainCanvas.height = h;
+            mainCanvas.getContext('2d').drawImage(tempCanvas, 0, 0);
+
+            updateInfo(w, h);
+        }
+
+        function saveState() {
+            currentImage = mainCanvas.toDataURL();
+            imageHistory.push(currentImage);
+            if (imageHistory.length > 20) imageHistory.shift();
+        }
+
+        function resetEdits() {
+            if (originalImage) {
+                loadImage(originalImage);
+            }
+        }
+
+        function resetToLanding() {
+            editorWorkspace.classList.add('hidden');
+            landingPage.classList.remove('hidden');
+            originalImage = null;
+            imageHistory = [];
+        }
+
+        function undo() {
+            if (imageHistory.length > 1) {
+                imageHistory.pop();
+                const lastImg = imageHistory[imageHistory.length - 1];
+                const img = new Image();
+                img.onload = () => {
+                    mainCanvas.width = img.width;
+                    mainCanvas.height = img.height;
+                    const ctx = mainCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    updateInfo(img.width, img.height);
+                    updateResizeInputs(img.width, img.height);
+                };
+                img.src = lastImg;
+            }
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'edited-image.png';
+            link.href = mainCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

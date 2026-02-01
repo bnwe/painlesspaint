@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reduced Editor Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0a0a0a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .canvas-checkered {
+            background-color: #111111;
+            background-image: linear-gradient(45deg, #181818 25%, transparent 25%), 
+                              linear-gradient(-45deg, #181818 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #181818 75%), 
+                              linear-gradient(-45deg, transparent 75%, #181818 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="flex h-screen w-full flex-col">
+<header class="flex h-14 items-center justify-between border-b border-slate-200 dark:border-white/10 bg-white dark:bg-background-dark px-4 z-30">
+<div class="flex items-center gap-4">
+<div class="size-7 text-primary">
+<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+</svg>
+</div>
+<div class="flex items-center gap-4 bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-200 dark:border-white/10">
+<div class="flex items-center gap-2">
+<label class="flex items-center gap-2">
+<span class="text-[10px] font-bold text-slate-500">W</span>
+<input class="w-16 h-7 bg-white dark:bg-black border border-slate-300 dark:border-white/20 rounded text-xs px-1.5 focus:ring-1 focus:ring-primary focus:border-transparent outline-none" type="text" value="1920"/>
+</label>
+<label class="flex items-center gap-2">
+<span class="text-[10px] font-bold text-slate-500">H</span>
+<input class="w-16 h-7 bg-white dark:bg-black border border-slate-300 dark:border-white/20 rounded text-xs px-1.5 focus:ring-1 focus:ring-primary focus:border-transparent outline-none" type="text" value="1080"/>
+</label>
+</div>
+<div class="h-4 w-px bg-slate-300 dark:bg-white/10"></div>
+<div class="flex h-7 items-center rounded-md bg-slate-200 dark:bg-white/10 p-0.5">
+<button class="px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white">PX</button>
+<button class="px-2 py-0.5 text-[10px] font-bold text-slate-500">%</button>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex h-9 items-center gap-2 px-4 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">restart_alt</span>
+                Reset
+            </button>
+<button class="flex h-9 items-center justify-center rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+                Download
+            </button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<nav class="flex w-16 flex-col items-center border-r border-slate-200 dark:border-white/10 bg-white dark:bg-background-dark py-4 z-20">
+<div class="flex flex-col gap-4">
+<button class="group flex flex-col items-center gap-1 transition-all">
+<div class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+<span class="material-symbols-outlined" style="font-size: 20px;">crop</span>
+</div>
+<span class="text-[9px] font-bold uppercase tracking-widest text-slate-500">Crop</span>
+</button>
+<button class="group flex flex-col items-center gap-1 transition-all">
+<div class="flex size-10 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/30">
+<span class="material-symbols-outlined" style="font-size: 20px; font-variation-settings: 'FILL' 1;">aspect_ratio</span>
+</div>
+<span class="text-[9px] font-bold uppercase tracking-widest text-primary">Resize</span>
+</button>
+<button class="group flex flex-col items-center gap-1 transition-all">
+<div class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+<span class="material-symbols-outlined" style="font-size: 20px;">blur_on</span>
+</div>
+<span class="text-[9px] font-bold uppercase tracking-widest text-slate-500">Blur</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4">
+<button class="group flex flex-col items-center">
+<div class="flex size-10 items-center justify-center rounded-lg text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">undo</span>
+</div>
+</button>
+</div>
+</nav>
+<main class="relative flex-1 bg-slate-100 dark:bg-[#050505] overflow-hidden flex items-center justify-center">
+<div class="relative canvas-checkered shadow-2xl overflow-hidden border border-slate-300 dark:border-white/5">
+<img alt="Workspace Image" class="block max-w-[90vw] max-h-[85vh] object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9dfkh5wSEKQQD17jS9hkyvJQhh-5fQtbrAtjX-K8PN6qSITwHrTDLGmkBnihbC9nfEYAyHjUFFZjswxNXXERulBWhcdlAkSBNLaqj7wE0va_fPtOpHTS5CwQAClWQq5D7thbPbV93dftDcUd1VmkDz-B2cR4FD5pjQGicPGYrbLKo6fzwL2EadtJFdxsnq4_xl-GYWuweDtOmZ3rOQ-DZrxbyKI_SyptJ7k6Pk7JndtkS55cHfQEJmoCiIj8w2agONdzDZaBDt3w"/>
+<div class="absolute inset-0 pointer-events-none border-2 border-primary/60">
+<div class="absolute -top-1.5 -left-1.5 size-3 bg-white border-2 border-primary shadow-sm"></div>
+<div class="absolute -top-1.5 -right-1.5 size-3 bg-white border-2 border-primary shadow-sm"></div>
+<div class="absolute -bottom-1.5 -left-1.5 size-3 bg-white border-2 border-primary shadow-sm"></div>
+<div class="absolute -bottom-1.5 -right-1.5 size-3 bg-white border-2 border-primary shadow-sm"></div>
+<div class="absolute top-1/2 -left-1.5 size-3 bg-white border-2 border-primary shadow-sm -translate-y-1/2"></div>
+<div class="absolute top-1/2 -right-1.5 size-3 bg-white border-2 border-primary shadow-sm -translate-y-1/2"></div>
+</div>
+</div>
+<div class="absolute bottom-4 right-4 flex items-center gap-3 px-3 py-1.5 rounded bg-black/40 backdrop-blur-sm border border-white/10 text-[10px] font-semibold tracking-wider text-slate-300 uppercase">
+<span>1920 × 1080</span>
+<span class="text-white/20">|</span>
+<span>72 DPI</span>
+</div>
+</main>
+</div>
+</div>
+
+</body></html>
