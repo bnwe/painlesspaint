@@ -14,6 +14,10 @@ A slick, speedy, and professional-grade image editor in a single file. Designed 
 
 Simply open `index.html` in any modern web browser. 
 
+## Live Version
+
+The `main` branch automatically deploys to GitHub Pages. Visit the live app at: **https://bnwe.github.io/painlesspaint/**
+
 ## Technology
 
 - HTML5 Canvas API
