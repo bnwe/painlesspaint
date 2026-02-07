@@ -317,6 +317,7 @@
         // Interaction state
         let isDrawing = false;
         let isResizing = false;
+        let isMoving = false;
         let activeHandle = null;
         let startX, startY;
         let cropRect = { x: 0, y: 0, w: 0, h: 0 };
@@ -380,6 +381,7 @@
 
             // Canvas interactions
             canvasContainer.addEventListener('mousedown', handleMouseDown);
+            cropOverlay.addEventListener('mousedown', handleMouseDown);
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
             window.addEventListener('keydown', handleKeyDown);
@@ -397,6 +399,14 @@
             };
         }
 
+        function isPointInCropRect(x, y) {
+            const minX = Math.min(cropRect.x, cropRect.x + cropRect.w);
+            const maxX = Math.max(cropRect.x, cropRect.x + cropRect.w);
+            const minY = Math.min(cropRect.y, cropRect.y + cropRect.h);
+            const maxY = Math.max(cropRect.y, cropRect.y + cropRect.h);
+            return x >= minX && x <= maxX && y >= minY && y <= maxY;
+        }
+
         function handleMouseDown(e) {
             if (currentTool === 'resize') return;
 
@@ -410,6 +420,16 @@
                     activeHandle = handle.dataset.handle;
                     startX = pos.x;
                     startY = pos.y;
+                    e.stopPropagation();
+                    return;
+                }
+
+                // Check if click is inside the crop rectangle (for moving)
+                if (isPointInCropRect(pos.x, pos.y)) {
+                    isMoving = true;
+                    startX = pos.x;
+                    startY = pos.y;
+                    e.preventDefault();
                     e.stopPropagation();
                     return;
                 }
@@ -429,11 +449,46 @@
         }
 
         function handleMouseMove(e) {
-            if (!isDrawing && !isResizing) return;
+            if (!isDrawing && !isResizing && !isMoving) return;
 
             const pos = getMousePos(e);
             const currentX = pos.x;
             const currentY = pos.y;
+
+            if (isMoving) {
+                const dx = currentX - startX;
+                const dy = currentY - startY;
+                
+                // Move the crop rectangle
+                cropRect.x += dx;
+                cropRect.y += dy;
+                
+                // Constrain to canvas bounds
+                const minX = Math.min(cropRect.x, cropRect.x + cropRect.w);
+                const minY = Math.min(cropRect.y, cropRect.y + cropRect.h);
+                const maxX = Math.max(cropRect.x, cropRect.x + cropRect.w);
+                const maxY = Math.max(cropRect.y, cropRect.y + cropRect.h);
+                const rectW = Math.abs(cropRect.w);
+                const rectH = Math.abs(cropRect.h);
+                
+                if (minX < 0) {
+                    cropRect.x = cropRect.w < 0 ? -rectW : 0;
+                }
+                if (minY < 0) {
+                    cropRect.y = cropRect.h < 0 ? -rectH : 0;
+                }
+                if (maxX > mainCanvas.width) {
+                    cropRect.x = cropRect.w < 0 ? mainCanvas.width : mainCanvas.width - rectW;
+                }
+                if (maxY > mainCanvas.height) {
+                    cropRect.y = cropRect.h < 0 ? mainCanvas.height : mainCanvas.height - rectH;
+                }
+                
+                startX = currentX;
+                startY = currentY;
+                updateCropOverlay();
+                return;
+            }
 
             if (isResizing) {
                 const dx = currentX - startX;
@@ -563,6 +618,10 @@
             if (isResizing) {
                 isResizing = false;
                 activeHandle = null;
+                return;
+            }
+            if (isMoving) {
+                isMoving = false;
                 return;
             }
             if (!isDrawing) return;
