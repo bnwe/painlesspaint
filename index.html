@@ -166,6 +166,19 @@
                             onclick="setResizeUnit('%')">%</button>
                     </div>
                 </div>
+                <!-- Crop Controls -->
+                <div id="crop-controls"
+                    class="hidden flex items-center gap-4 bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-200 dark:border-white/10">
+                    <div class="flex h-7 items-center rounded-md bg-slate-200 dark:bg-white/10 p-0.5">
+                        <button id="crop-aspect-free"
+                            class="px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white"
+                            onclick="setCropAspectRatio('free')" title="Free aspect ratio">Free</button>
+                        <button id="crop-aspect-4-3" class="px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                            onclick="setCropAspectRatio('4:3')" title="4:3 aspect ratio">4:3</button>
+                        <button id="crop-aspect-3-4" class="px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                            onclick="setCropAspectRatio('3:4')" title="3:4 aspect ratio">3:4</button>
+                    </div>
+                </div>
                 <!-- Blur Controls -->
                 <div id="blur-controls"
                     class="hidden flex items-center gap-4 bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-200 dark:border-white/10">
@@ -298,6 +311,7 @@
         let currentTool = 'resize';
         let resizeUnit = 'px';
         let aspectRatioMode = 'free'; // 'free', '4:3', '3:4'
+        let cropAspectRatioMode = 'free'; // 'free', '4:3', '3:4'
         let blurIntensity = 3; // 1=Low, 2=Medium, 3=High, 4=Very High, 5=Maximum
 
         // Interaction state
@@ -425,10 +439,92 @@
                 const dx = currentX - startX;
                 const dy = currentY - startY;
 
-                if (activeHandle.includes('e')) cropRect.w += dx;
-                if (activeHandle.includes('w')) { cropRect.x += dx; cropRect.w -= dx; }
-                if (activeHandle.includes('s')) cropRect.h += dy;
-                if (activeHandle.includes('n')) { cropRect.y += dy; cropRect.h -= dy; }
+                // Store original rect for position calculations
+                const origRect = { ...cropRect };
+                
+                let newW = cropRect.w;
+                let newH = cropRect.h;
+                let newX = cropRect.x;
+                let newY = cropRect.y;
+
+                // Calculate new dimensions based on handle
+                if (activeHandle.includes('e')) newW += dx;
+                if (activeHandle.includes('w')) { newX += dx; newW -= dx; }
+                if (activeHandle.includes('s')) newH += dy;
+                if (activeHandle.includes('n')) { newY += dy; newH -= dy; }
+
+                // Apply aspect ratio constraint if enabled
+                if (cropAspectRatioMode !== 'free') {
+                    const targetRatio = cropAspectRatioMode === '4:3' ? 4/3 : 3/4;
+                    const isCorner = activeHandle.length === 2; // nw, ne, sw, se
+                    const isHorizontalEdge = activeHandle === 'e' || activeHandle === 'w';
+                    const isVerticalEdge = activeHandle === 'n' || activeHandle === 's';
+                    
+                    if (isCorner) {
+                        // Corner handle: use the larger change as base
+                        const absDx = Math.abs(dx);
+                        const absDy = Math.abs(dy);
+                        
+                        if (absDx > absDy) {
+                            // Width change is larger, use it as base
+                            const absW = Math.abs(newW);
+                            const signW = newW < 0 ? -1 : 1;
+                            const signH = origRect.h < 0 ? -1 : 1;
+                            newW = absW * signW;
+                            newH = absW / targetRatio * signH;
+                            
+                            // Adjust position for handles that affect Y
+                            if (activeHandle.includes('n')) {
+                                newY = origRect.y + origRect.h - newH;
+                            }
+                            // Adjust position for handles that affect X
+                            if (activeHandle.includes('w')) {
+                                newX = origRect.x + origRect.w - newW;
+                            }
+                        } else {
+                            // Height change is larger, use it as base
+                            const absH = Math.abs(newH);
+                            const signH = newH < 0 ? -1 : 1;
+                            const signW = origRect.w < 0 ? -1 : 1;
+                            newH = absH * signH;
+                            newW = absH * targetRatio * signW;
+                            
+                            // Adjust position for handles that affect X
+                            if (activeHandle.includes('w')) {
+                                newX = origRect.x + origRect.w - newW;
+                            }
+                            // Adjust position for handles that affect Y
+                            if (activeHandle.includes('n')) {
+                                newY = origRect.y + origRect.h - newH;
+                            }
+                        }
+                    } else if (isHorizontalEdge) {
+                        // Horizontal edge handle: use width as base
+                        const absW = Math.abs(newW);
+                        const signW = newW < 0 ? -1 : 1;
+                        const signH = origRect.h < 0 ? -1 : 1;
+                        newW = absW * signW;
+                        newH = absW / targetRatio * signH;
+                        
+                        // Adjust Y position to maintain anchor point
+                        newY = origRect.y + origRect.h - newH;
+                    } else if (isVerticalEdge) {
+                        // Vertical edge handle: use height as base
+                        const absH = Math.abs(newH);
+                        const signH = newH < 0 ? -1 : 1;
+                        const signW = origRect.w < 0 ? -1 : 1;
+                        newH = absH * signH;
+                        newW = absH * targetRatio * signW;
+                        
+                        // Adjust X position to maintain anchor point
+                        newX = origRect.x + origRect.w - newW;
+                    }
+                }
+
+                cropRect.w = newW;
+                cropRect.h = newH;
+                cropRect.x = newX;
+                cropRect.y = newY;
 
                 startX = currentX;
                 startY = currentY;
@@ -437,8 +533,24 @@
             }
 
             if (currentTool === 'crop') {
-                cropRect.w = currentX - startX;
-                cropRect.h = currentY - startY;
+                let w = currentX - startX;
+                let h = currentY - startY;
+
+                // Apply aspect ratio constraint if enabled
+                if (cropAspectRatioMode !== 'free') {
+                    const absW = Math.abs(w);
+                    const absH = Math.abs(h);
+                    
+                    // Use the larger dimension as base to maintain aspect ratio
+                    if (absW > absH) {
+                        h = Math.abs(w) * (cropAspectRatioMode === '4:3' ? 3/4 : 4/3) * (h < 0 ? -1 : 1);
+                    } else {
+                        w = Math.abs(h) * (cropAspectRatioMode === '4:3' ? 4/3 : 3/4) * (w < 0 ? -1 : 1);
+                    }
+                }
+
+                cropRect.w = w;
+                cropRect.h = h;
                 updateCropOverlay();
             } else if (currentTool === 'blur') {
                 blurRect.w = currentX - startX;
@@ -769,6 +881,7 @@
 
             // Toggle tool specific controls/overlays
             document.getElementById('resize-controls').classList.toggle('hidden', tool !== 'resize');
+            document.getElementById('crop-controls').classList.toggle('hidden', tool !== 'crop');
             document.getElementById('blur-controls').classList.toggle('hidden', tool !== 'blur');
             cropOverlay.classList.add('hidden');
             blurOverlay.classList.add('hidden');
@@ -805,6 +918,37 @@
                     resizeH.value = Math.round((newH / originalImage.height) * 100);
                 }
                 handleResizeInput('w');
+            }
+        }
+
+        function setCropAspectRatio(mode) {
+            cropAspectRatioMode = mode;
+            document.getElementById('crop-aspect-free').className = mode === 'free' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+            document.getElementById('crop-aspect-4-3').className = mode === '4:3' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+            document.getElementById('crop-aspect-3-4').className = mode === '3:4' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+
+            // If aspect ratio is constrained and there's an existing crop rectangle, adjust it
+            if (mode !== 'free' && !cropOverlay.classList.contains('hidden') && Math.abs(cropRect.w) > 5 && Math.abs(cropRect.h) > 5) {
+                const absW = Math.abs(cropRect.w);
+                const absH = Math.abs(cropRect.h);
+                const targetRatio = mode === '4:3' ? 4/3 : 3/4;
+                
+                // Use width as base to maintain aspect ratio
+                const newW = absW;
+                const newH = absW / targetRatio;
+                
+                cropRect.w = cropRect.w < 0 ? -newW : newW;
+                cropRect.h = cropRect.h < 0 ? -newH : newH;
+                
+                // Adjust position to keep the same anchor point (top-left)
+                if (cropRect.w < 0) {
+                    cropRect.x = cropRect.x + cropRect.w + newW;
+                }
+                if (cropRect.h < 0) {
+                    cropRect.y = cropRect.y + cropRect.h + newH;
+                }
+                
+                updateCropOverlay();
             }
         }
 
