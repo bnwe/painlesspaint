@@ -684,10 +684,11 @@
         }
 
         function applyCrop() {
-            const x = Math.min(cropRect.x, cropRect.x + cropRect.w);
-            const y = Math.min(cropRect.y, cropRect.y + cropRect.h);
-            const w = Math.abs(cropRect.w);
-            const h = Math.abs(cropRect.h);
+            // Round to integers for pixel-perfect cropping
+            const x = Math.round(Math.min(cropRect.x, cropRect.x + cropRect.w));
+            const y = Math.round(Math.min(cropRect.y, cropRect.y + cropRect.h));
+            const w = Math.round(Math.abs(cropRect.w));
+            const h = Math.round(Math.abs(cropRect.h));
 
             if (w < 5 || h < 5) return;
 
@@ -695,11 +696,16 @@
             tempCanvas.width = w;
             tempCanvas.height = h;
             const ctx = tempCanvas.getContext('2d');
+            // Disable image smoothing for pixel-perfect copying
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(mainCanvas, x, y, w, h, 0, 0, w, h);
 
             mainCanvas.width = w;
             mainCanvas.height = h;
-            mainCanvas.getContext('2d').drawImage(tempCanvas, 0, 0);
+            const mainCtx = mainCanvas.getContext('2d');
+            // Disable image smoothing for pixel-perfect copying
+            mainCtx.imageSmoothingEnabled = false;
+            mainCtx.drawImage(tempCanvas, 0, 0);
 
             cropOverlay.classList.add('hidden');
             applyCropBtn.classList.add('hidden');
