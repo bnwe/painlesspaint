@@ -149,6 +149,16 @@
                     </div>
                     <div class="h-4 w-px bg-slate-300 dark:bg-white/10"></div>
                     <div class="flex h-7 items-center rounded-md bg-slate-200 dark:bg-white/10 p-0.5">
+                        <button id="aspect-free"
+                            class="px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white"
+                            onclick="setAspectRatio('free')" title="Free aspect ratio">Free</button>
+                        <button id="aspect-4-3" class="px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                            onclick="setAspectRatio('4:3')" title="4:3 aspect ratio">4:3</button>
+                        <button id="aspect-3-4" class="px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                            onclick="setAspectRatio('3:4')" title="3:4 aspect ratio">3:4</button>
+                    </div>
+                    <div class="h-4 w-px bg-slate-300 dark:bg-white/10"></div>
+                    <div class="flex h-7 items-center rounded-md bg-slate-200 dark:bg-white/10 p-0.5">
                         <button id="unit-px"
                             class="px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white"
                             onclick="setResizeUnit('px')">PX</button>
@@ -287,6 +297,7 @@
         let imageHistory = [];
         let currentTool = 'resize';
         let resizeUnit = 'px';
+        let aspectRatioMode = 'free'; // 'free', '4:3', '3:4'
         let blurIntensity = 3; // 1=Low, 2=Medium, 3=High, 4=Very High, 5=Maximum
 
         // Interaction state
@@ -773,6 +784,30 @@
             document.getElementById('tool-help').textContent = helpText[tool] || '';
         }
 
+        function setAspectRatio(mode) {
+            aspectRatioMode = mode;
+            document.getElementById('aspect-free').className = mode === 'free' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+            document.getElementById('aspect-4-3').className = mode === '4:3' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+            document.getElementById('aspect-3-4').className = mode === '3:4' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
+
+            // If aspect ratio is constrained, update the dimensions to match current width
+            if (mode !== 'free' && mainCanvas.width > 0 && originalImage) {
+                const currentW = parseInt(resizeW.value) || mainCanvas.width;
+                let newH;
+                if (mode === '4:3') {
+                    newH = Math.round(currentW * 3 / 4);
+                } else if (mode === '3:4') {
+                    newH = Math.round(currentW * 4 / 3);
+                }
+                if (resizeUnit === 'px') {
+                    resizeH.value = newH;
+                } else {
+                    resizeH.value = Math.round((newH / originalImage.height) * 100);
+                }
+                handleResizeInput('w');
+            }
+        }
+
         function setResizeUnit(unit) {
             resizeUnit = unit;
             document.getElementById('unit-px').className = unit === 'px' ? 'px-2 py-0.5 text-[10px] font-bold rounded bg-white dark:bg-white/20 text-primary dark:text-white' : 'px-2 py-0.5 text-[10px] font-bold text-slate-500';
@@ -782,8 +817,8 @@
         }
 
         function handleResizeInput(axis) {
-            const w = parseInt(resizeW.value) || 0;
-            const h = parseInt(resizeH.value) || 0;
+            let w = parseInt(resizeW.value) || 0;
+            let h = parseInt(resizeH.value) || 0;
 
             if (w <= 0 || h <= 0) return;
 
@@ -793,9 +828,54 @@
                 if (resizeUnit === 'px') {
                     targetW = w;
                     targetH = h;
+                    
+                    // Apply aspect ratio constraint if enabled
+                    if (aspectRatioMode !== 'free') {
+                        if (axis === 'w') {
+                            // Width changed, calculate height based on aspect ratio
+                            if (aspectRatioMode === '4:3') {
+                                targetH = Math.round(targetW * 3 / 4);
+                            } else if (aspectRatioMode === '3:4') {
+                                targetH = Math.round(targetW * 4 / 3);
+                            }
+                            resizeH.value = targetH;
+                        } else if (axis === 'h') {
+                            // Height changed, calculate width based on aspect ratio
+                            if (aspectRatioMode === '4:3') {
+                                targetW = Math.round(targetH * 4 / 3);
+                            } else if (aspectRatioMode === '3:4') {
+                                targetW = Math.round(targetH * 3 / 4);
+                            }
+                            resizeW.value = targetW;
+                        }
+                    }
                 } else {
+                    // Percentage mode: calculate pixel dimensions first
                     targetW = Math.round(originalImage.width * (w / 100));
                     targetH = Math.round(originalImage.height * (h / 100));
+                    
+                    // Apply aspect ratio constraint if enabled
+                    if (aspectRatioMode !== 'free') {
+                        if (axis === 'w') {
+                            // Width changed, calculate height based on aspect ratio
+                            if (aspectRatioMode === '4:3') {
+                                targetH = Math.round(targetW * 3 / 4);
+                            } else if (aspectRatioMode === '3:4') {
+                                targetH = Math.round(targetW * 4 / 3);
+                            }
+                            // Convert back to percentage
+                            resizeH.value = Math.round((targetH / originalImage.height) * 100);
+                        } else if (axis === 'h') {
+                            // Height changed, calculate width based on aspect ratio
+                            if (aspectRatioMode === '4:3') {
+                                targetW = Math.round(targetH * 4 / 3);
+                            } else if (aspectRatioMode === '3:4') {
+                                targetW = Math.round(targetH * 3 / 4);
+                            }
+                            // Convert back to percentage
+                            resizeW.value = Math.round((targetW / originalImage.width) * 100);
+                        }
+                    }
                 }
                 applyResize(targetW, targetH);
             };
